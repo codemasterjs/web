@@ -59,6 +59,12 @@ function OnBodyLoad()
      		while (container.firstChild)
      		  container.removeChild(container.firstChild);
      		tree.appendTable(container,tree);
+     		for (const pEl of document.getElementsByTagName("p"))
+     		{
+     			const tr=pEl.parentElement.parentElement;
+     			const trHeight = tr.clientHeight;
+     			pEl.style.height = trHeight/2 + 'px';
+     		}
      }
      
      class NodeData {
@@ -187,6 +193,8 @@ function OnBodyLoad()
 			       tdLeftTickTop = trTop.insertCell();
 			       tdLeftTickTop.className='topLeftTick';
 			       tdLeftTickTop.appendChild(doc.createElement('br'));
+						 tdLeftTickTop.innerHTML = '<p></p>';
+
 			       if (firstChild != lastChild) {
 
 			         if (child == firstChild)
@@ -215,7 +223,7 @@ function OnBodyLoad()
 		         tdRightTickTop = trTop.insertCell();
 	           tdRightTickTop.className = 'topRightTick';
 						 tdRightTickTop.appendChild(doc.createElement('br'));
-						 tdRightTickTop.innerHTML = 'x<br>';
+						 tdRightTickTop.innerHTML = '<p></p>';
 
 			       tdMentees = trTop.insertCell();
 			       tdMentees.rowSpan = 2;
@@ -227,6 +235,7 @@ function OnBodyLoad()
 			       tdLeftTickBottom = trBottom.insertCell();
 			       tdLeftTickBottom.className = 'bottomLeftTick';
 			       tdLeftTickBottom.appendChild(doc.createElement('br'));
+						 tdLeftTickBottom.innerHTML = '<p></p>';
 
 			       if (firstChild != lastChild) {
 			         if (child == firstChild)
@@ -244,6 +253,8 @@ function OnBodyLoad()
 			     if (tdRightTickTop) {
 			       tdRightTickBottom = trBottom.insertCell();
 			       tdRightTickBottom.appendChild(doc.createElement('br'));
+						 tdRightTickBottom.innerHTML = '<p></p>';
+
 			     }
 
 
