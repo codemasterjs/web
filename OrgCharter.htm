@@ -1,0 +1,283 @@
+<html>
+<head>
+  <style>
+    @media print
+		{    
+		    .no-print, .no-print *
+		    {
+		        display: none !important;
+		    }
+		}
+	  
+    .person {border:1px solid black;margin-top:.5em;margin-bottom:.5em;padding:.2em;}
+    .mentees {}
+    .topRightTick {border-bottom:1px solid black;width:1em;}
+    .bottomRightTick {border-bottom:0px solid black;}
+    .topLeftTickTop {border-bottom:1px solid black; width:1em}
+    .topLeftTickMiddle {border-bottom:0px solid black; border-left:1px solid black; width:1em;}
+    .topLeftTickBottom {border-bottom:0px solid black; border-left: 1px solid black; width:1em;}
+    .topLeftTick {border-bottom:1px solid black; width:1em;}
+    .bottomLeftTickTop {border-top:0px solid black; border-left: 1px solid black; width:1em;}
+    .bottomLeftTickMiddle {border-top:1px solid black; border-left:1px solid black; width:1em;}
+    .bottomLeftTickBottom {border-top:1px solid black; width:1em;}
+    .bottomLeftTick {border-top:0px solid black; width:1em;}
+
+  </style>
+  <script languge="javascript">
+
+function OnBodyLoad()
+{
+		//Allow tab character to work in text box
+    document.getElementById('orgData').onkeydown = function(e) {
+        if(e.keyCode==9 || e.which==9){
+            e.preventDefault();
+            var s = this.selectionStart;
+            this.value = this.value.substring(0,this.selectionStart) + "\t" + this.value.substring(this.selectionEnd);
+            this.selectionEnd = s+1; 
+        }
+    }
+}
+
+
+     function buildChart()
+     {
+				var tree = new Node('Root', null);
+				
+				for(const line of document.getElementById('orgData').value.split(/\r?\n/)) {
+				    let lastPerson = null;
+				    for (const person of line.split(/\t/)) {
+				      if (lastPerson && person)
+				      	tree.assign(person, lastPerson);
+				      lastPerson = person;
+				    } 
+				}
+				
+				
+     		document.getElementById('membership').value = tree.getLeafNamesText('\t');
+
+     		const container = document.getElementById('mainContent');
+     		while (container.firstChild)
+     		  container.removeChild(container.firstChild);
+     		tree.appendTable(container,tree);
+     }
+     
+     class NodeData {
+       constructor(name) {
+         this.name = name;
+       }
+     }
+     
+     class Node {
+       constructor(data,parent) {
+         this.data = data;
+         this.children = [];
+         this.parent = parent;
+       }
+       
+       addName(name) {
+          const newData = new NodeData(name);
+          return this.add(newData);
+       }
+       
+       add(data) {
+         const newChild = new Node(data,this);
+         return this.addChild(newChild);
+       }
+       
+       addChild(n) {
+         if (n.parent)
+           n.parent.removeChild(n);
+         n.parent = this;
+         this.children.push(n);
+         return n;
+       }
+       
+       
+       
+       remove(data) {
+         this.children = this.children.filter(child => child.data !== data);
+       }
+       
+       removeChild(n) {
+         this.children = this.children.filter(child => child !== n);
+       }
+
+       getRoot() {
+         var ancestor = this;
+         while (ancestor.parent) {
+           ancestor = ancestor.parent;
+         }
+         return ancestor;
+       }
+
+       
+       pathName(pathSeparator) {
+         var ancestor = this;
+         var result = '';
+         while (ancestor.parent) {
+           if (result) result = ancestor.data.name + pathSeparator + result; else result=ancestor.data.name;
+           ancestor = ancestor.parent;
+         }
+         return result;
+       }
+       
+       getLeaves(n) {
+         if (n.children.length==0) return [n];
+         const result=[];
+         for (const child of n.children)
+           for (const leaf of this.getLeaves(child)) 
+             result.push(leaf);
+	         
+         return result;
+       }
+       
+       getLeafNamesText(pathSeparator) {
+         let resultArr = [];
+         for (const leaf of this.getLeaves(this))
+           resultArr.push(leaf.pathName(pathSeparator));
+         resultArr.sort();
+         return resultArr.join('\r\n');  
+       }
+       
+       rFind(n,name) {
+         if (n.data.name == name) return n;
+         for (const child of n.children) {
+           const result = this.rFind(child, name);
+           if (result) return result;
+         }
+       }
+       
+       find(name) {
+         return this.rFind(this,name);
+       }
+     
+       assign(childName, parentName)
+       {
+         const root=this.getRoot();
+         let parent = root.find(parentName);
+         let child = root.find(childName);
+         if (!parent) parent = root.addName(parentName);
+         if (!child) {child = parent.addName(childName); return;}
+         
+         let parentFromChild = child.find(parentName);
+         if (parentFromChild) parentFromChild.parent.removeChild(parentFromChild);
+         
+         parent.addChild(child);
+         
+       }
+
+			 appendTable(el,n) {
+			   const doc=document;
+			   const tbl = doc.createElement('table');
+			   tbl.style.height="1px";
+			   tbl.cellSpacing = '0';
+			   tbl.cellPadding = '0';
+			   el.appendChild(tbl);
+			   
+				   let firstChild = null;
+				   let lastChild = null;
+				   if (n.children.length>0) {firstChild = n.children[0]; lastChild=n.children[n.children.length - 1];}
+			   
+			   for (const child of n.children)
+			   {
+
+			     const trTop = tbl.insertRow();
+			     let tdLeftTickTop = null;
+			     if (n.parent) {
+			       tdLeftTickTop = trTop.insertCell();
+			       tdLeftTickTop.className='topLeftTick';
+			       tdLeftTickTop.appendChild(doc.createElement('br'));
+			       if (firstChild != lastChild) {
+
+			         if (child == firstChild)
+			           tdLeftTickTop.className = 'topLeftTickTop';
+			         else if (child == lastChild)
+			           tdLeftTickTop.className = 'topLeftTickBottom';
+			         else 
+			           tdLeftTickTop.className = 'topLeftTickMiddle';
+			       }
+			       else
+			           tdLeftTickTop.className = 'topLeftTick';
+		       }
+
+
+			     const tdMentor = trTop.insertCell();
+			     tdMentor.rowSpan = 2;
+			     let divPerson = tdMentor.appendChild(doc.createElement('div'));
+			     divPerson.className = 'person';
+			     divPerson.appendChild(doc.createTextNode(child.data.name));
+			     let tdRightTickTop = null;
+			     let tdMentees = null;
+           
+			     if (child.children.length>0) 
+			     {
+		         tdRightTickTop = trTop.insertCell();
+	           tdRightTickTop.className = 'topRightTick';
+						 tdRightTickTop.appendChild(doc.createElement('br'));
+
+			       tdMentees = trTop.insertCell();
+			       tdMentees.rowSpan = 2;
+						 tdMentees.className='mentees';
+			     }
+			     const trBottom = tbl.insertRow();
+			     let tdLeftTickBottom = null;
+			     if (tdLeftTickTop) {
+			       tdLeftTickBottom = trBottom.insertCell();
+			       tdLeftTickBottom.className = 'bottomLeftTick';
+			       tdLeftTickBottom.appendChild(doc.createElement('br'));
+
+			       if (firstChild != lastChild) {
+			         if (child == firstChild)
+			           tdLeftTickBottom.className = 'bottomLeftTickTop';
+			         else if (child == lastChild)
+			           tdLeftTickBottom.className = 'bottomLeftTickBottom';
+			         else 
+			           tdLeftTickBottom.className = 'bottomLeftTickMiddle';
+			       }
+			       else
+			           tdLeftTickBottom.className = 'bottomLeftTick';
+			     }
+
+			     let tdRightTickBottom = null;
+			     if (tdRightTickTop) {
+			       tdRightTickBottom = trBottom.insertCell();
+			       tdRightTickBottom.appendChild(doc.createElement('br'));
+			     }
+
+
+
+			     if (tdMentees) this.appendTable(tdMentees,child); 
+			     
+			   }
+			 }
+
+
+     }
+     
+     
+     
+  </script>
+</head>
+<body onload="OnBodyLoad()">
+
+<div id="mainInput" class="no-print">
+  <table><tr><td valign="top">
+  <h2>List Leader / Member Relationships</h2>
+  <h5>Separate people by tab with leaders on the left and members to the right.<br>Each line defines new relationships.</h5>
+	<textarea id="orgData" rows="10" cols="80"></textarea><br><br>
+	<button id="build" onclick="buildChart();">Build</button>
+	</td>
+	<td valign="top">
+	<h2>Interpreted Membership Listing</h2>
+	<h5>After building a membership tree, this will show a lissting of the members.<br><br></h5>
+	<textarea id="membership" rows="10" cols="80"></textarea>
+	</td>
+	</tr>
+	</table>
+</div>
+
+<div id="mainContent">
+</div>
+
+</body>
+</html>
