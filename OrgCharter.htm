@@ -265,7 +265,7 @@ function OnBodyLoad()
   <h2>List Leader / Member Relationships</h2>
   <h5>Separate people by tab with leaders on the left and members to the right.<br>Each line defines new relationships.</h5>
 	<textarea id="orgData" rows="10" cols="80"></textarea><br><br>
-  <span>Chart Title</span> <input type="text" id="inputTitle"/><br><br>
+  <span>Chart Title</span> <input type="text" id="inputTitle" onblur="document.getElementById('title').innerText=this.value;"/><br><br>
 	<button id="build" onclick="buildChart();">Build</button>
 	</td>
 	<td valign="top">
