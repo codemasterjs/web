@@ -45,7 +45,7 @@ function OnBodyLoad()
 				
 				for(const line of document.getElementById('orgData').value.split(/\r?\n/)) {
 				    let lastPerson = null;
-				    for (const person of line.split(/\t/)) {
+				    for (const person of line.split(/[\t;]/)) {
 				      if (lastPerson && person)
 				      	tree.assign(person, lastPerson);
 				      lastPerson = person;
