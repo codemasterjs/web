@@ -45,7 +45,13 @@ function OnBodyLoad()
 				
 				for(const line of document.getElementById('orgData').value.split(/\r?\n/)) {
 				    let lastPerson = null;
-				    let lineItems = line.split(/[\t\;]/)
+				    let allLineItems = line.split(/[\t\;]/)
+				    let lineItems = [];
+				    for (var i=0;i<allLineItems.length;i++)
+				      allLineItems[i]=allLineItems[i];
+				    for (let item of allLineItems)
+				      if (item) lineItems.push(item);
+				      
 				    if (lineItems.length == 1 && !tree.find(lineItems[0])) {
 				    	tree.addName(lineItems[0]);
 				    }
