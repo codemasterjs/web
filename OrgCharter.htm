@@ -45,11 +45,16 @@ function OnBodyLoad()
 				
 				for(const line of document.getElementById('orgData').value.split(/\r?\n/)) {
 				    let lastPerson = null;
-				    for (const person of line.split(/[\t\;]/)) {
-				      if (lastPerson && person)
-				      	tree.assign(person, lastPerson);
-				      lastPerson = person;
-				    } 
+				    let lineItems = line.split(/[\t\;]/)
+				    if (lineItems.length == 1 && !tree.find(lineItems[0])) {
+				    	tree.addName(lineItems[0]);
+				    }
+				    else
+					    for (const person of lineItems) {
+					      if (lastPerson && person)
+					      	tree.assign(person, lastPerson);
+					      lastPerson = person;
+					    } 
 				}
 				
 				
@@ -69,28 +74,6 @@ function OnBodyLoad()
      		  td.innerHTML='<br>';
      		  if (td.doubleHeightElement)
      		    td.style.height = td.doubleHeightElement.offsetHeight / 2 + 'px';
-     		  else {
-     		    let tst=1;
-     		  }
-     		      
-     			/*const tr=td.parentElement;
-     			const tdPrev = td.previousElementSibling;
-					const tdNext = td.nextElementSibling;
-				
-     			if (tdPrev) {
-	     			const totHeight = tdPrev.offsetHeight;
-	     			const adjHeight = totHeight / 2;
-	     			td.style.height = adjHeight + 'px';
-	     		}
-	     		else if (tdNext) {
-	     		  const totHeight = tdNext.offsetHeight;
-	     		  const adjHeight = totHeight / 2;
-	     		  td.style.height = adjHeight + 'px';
-	     		}
-	     		else {
-	     		  let test = 1;
-     			}
-     			*/
      		}
      }
      
