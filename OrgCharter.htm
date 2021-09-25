@@ -59,11 +59,38 @@ function OnBodyLoad()
      		while (container.firstChild)
      		  container.removeChild(container.firstChild);
      		tree.appendTable(container,tree);
+     		let td=null;
+     		let pEls=[];
      		for (const pEl of document.getElementsByTagName("p"))
+     		  pEls.push(pEl);
+     		for (const pEl of pEls)
      		{
-     			const tr=pEl.parentElement.parentElement;
-     			const trHeight = tr.clientHeight;
-     			pEl.style.height = trHeight/2 + 'px';
+     		  td=pEl.parentElement;
+     		  td.innerHTML='<br>';
+     		  if (td.doubleHeightElement)
+     		    td.style.height = td.doubleHeightElement.offsetHeight / 2 + 'px';
+     		  else {
+     		    let tst=1;
+     		  }
+     		      
+     			/*const tr=td.parentElement;
+     			const tdPrev = td.previousElementSibling;
+					const tdNext = td.nextElementSibling;
+				
+     			if (tdPrev) {
+	     			const totHeight = tdPrev.offsetHeight;
+	     			const adjHeight = totHeight / 2;
+	     			td.style.height = adjHeight + 'px';
+	     		}
+	     		else if (tdNext) {
+	     		  const totHeight = tdNext.offsetHeight;
+	     		  const adjHeight = totHeight / 2;
+	     		  td.style.height = adjHeight + 'px';
+	     		}
+	     		else {
+	     		  let test = 1;
+     			}
+     			*/
      		}
      }
      
@@ -194,6 +221,7 @@ function OnBodyLoad()
 			       tdLeftTickTop.className='topLeftTick';
 			       tdLeftTickTop.appendChild(doc.createElement('br'));
 						 tdLeftTickTop.innerHTML = '<p></p>';
+						 
 
 			       if (firstChild != lastChild) {
 
@@ -217,6 +245,7 @@ function OnBodyLoad()
 			     divPerson.appendChild(doc.createTextNode(child.data.name));
 			     let tdRightTickTop = null;
 			     let tdMentees = null;
+           if (n.parent) tdLeftTickTop.doubleHeightElement = tdMentor;
            
 			     if (child.children.length>0) 
 			     {
@@ -224,10 +253,16 @@ function OnBodyLoad()
 	           tdRightTickTop.className = 'topRightTick';
 						 tdRightTickTop.appendChild(doc.createElement('br'));
 						 tdRightTickTop.innerHTML = '<p></p>';
+						 tdRightTickTop.doubleHeightElement = tdMentor;
 
 			       tdMentees = trTop.insertCell();
 			       tdMentees.rowSpan = 2;
 						 tdMentees.className='mentees';
+						 if (el.tdLeftTickTop)
+						   el.tdLeftTickTop.doubleHeightElement = tdMentees;
+						 if (el.tdLeftTickBottom)
+						   el.tdLeftTickBottom.doubleHeightElement = tdMentees;
+						   
 			     }
 			     const trBottom = tbl.insertRow();
 			     let tdLeftTickBottom = null;
@@ -236,6 +271,7 @@ function OnBodyLoad()
 			       tdLeftTickBottom.className = 'bottomLeftTick';
 			       tdLeftTickBottom.appendChild(doc.createElement('br'));
 						 tdLeftTickBottom.innerHTML = '<p></p>';
+						 if (n.parent) tdLeftTickBottom.doubleHeightElement = tdMentor;
 
 			       if (firstChild != lastChild) {
 			         if (child == firstChild)
@@ -252,15 +288,19 @@ function OnBodyLoad()
 			     let tdRightTickBottom = null;
 			     if (tdRightTickTop) {
 			       tdRightTickBottom = trBottom.insertCell();
+			       tdRightTickBottom.className = 'bottomRightTick';
 			       tdRightTickBottom.appendChild(doc.createElement('br'));
 						 tdRightTickBottom.innerHTML = '<p></p>';
-
+						 tdRightTickBottom.doubleHeightElement = tdMentor;
 			     }
 
 
 
-			     if (tdMentees) this.appendTable(tdMentees,child); 
-			     
+			     if (tdMentees) {
+			       tdMentees.tdLeftTickBottom = tdLeftTickBottom;
+			       tdMentees.tdleftTickTop = tdLeftTickTop;
+			       this.appendTable(tdMentees,child); 
+			     }
 			   }
 			 }
 
