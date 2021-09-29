@@ -10,7 +10,7 @@
 		}
 	  
     .person {border:1px solid black;margin-top:.5em;margin-bottom:.5em;padding:.2em;}
-    .mentees {}
+    .boxed {border:1px solid black;padding:.2em}
     .topRightTick {border-bottom:1px solid black;width:1em;height:50%}
     .bottomRightTick {border-bottom:0px solid black;height:50%;}
     .topLeftTickTop {border-bottom:1px solid black; width:1em}
@@ -38,14 +38,29 @@ function OnBodyLoad()
     }
 }
 
+     function parseMentorText(mentorText) {
+				let result = {};
+				const prefixChars = mentorText.match(/^[\*\!\@\#\%\^\&]/g);
+				mentorText=mentorText.replace(/^[\*\!\@\#\%\^\&]/g,'');
+				const JSONObjectTextArr = mentorText.match(/\{.*?\}$/g)
+				mentorText=mentorText.replace(/\{.*?\}$/g,'');
+				result.prefixChars = prefixChars;
+				result.additionalData = null;
+				if (JSONObjectTextArr && JSONObjectTextArr.length) result.additionalData = JSON.parse(JSONObjectTextArr[0]);
+				result.name = mentorText;
+				return result;				
+     }
+     
 
      function buildChart()
      {
+        //let tst = parseMentorText('Jason{"mentorCss": "background:blue", "menteesCss": "background:green", "subobj": {"f1":"hi","f2":"hi"}}');
+				//alert(tst.additionalData.mentorCss);
 				var tree = new Node('Root', null);
 				
 				for(const line of document.getElementById('orgData').value.split(/\r?\n/)) {
 				    let lastPerson = null;
-				    let allLineItems = line.split(/[\t\;]/)
+				    let allLineItems = line.split(/[\t\|]/)
 				    let lineItems = [];
 				    for (var i=0;i<allLineItems.length;i++)
 				      allLineItems[i]=allLineItems[i];
@@ -53,12 +68,23 @@ function OnBodyLoad()
 				      if (item) lineItems.push(item);
 				      
 				    if (lineItems.length == 1 && !tree.find(lineItems[0])) {
-				    	tree.addName(lineItems[0]);
+				      let ndata = parseMentorText(lineItems[0]);
+				    	let newNode = tree.addName(ndata.name);
+				    	if (ndata.additionalData) newNode.data.additionalData = ndata.additionalData;
+				    	if (ndata.prefixChars) newNode.data.prefixChars = ndata.prefixChars;
 				    }
 				    else
 					    for (const person of lineItems) {
-					      if (lastPerson && person)
-					      	tree.assign(person, lastPerson);
+					      if (lastPerson && person) {
+     				      let ndata = parseMentorText(person);
+     				      let ndataLast = parseMentorText(lastPerson);
+
+					      	let newNode = tree.assign(ndata.name, ndataLast.name);
+	  				    	if (ndata.additionalData) newNode.data.additionalData = ndata.additionalData;
+						    	if (ndata.prefixChars) newNode.data.prefixChars = ndata.prefixChars;
+	  				    	if (ndataLast.additionalData) newNode.parent.data.additionalData = ndataLast.additionalData;
+						    	if (ndataLast.prefixChars) newNode.parent.data.prefixChars = ndataLast.prefixChars;
+					      }
 					      lastPerson = person;
 					    } 
 				}
@@ -173,19 +199,21 @@ function OnBodyLoad()
          return this.rFind(this,name);
        }
      
+     
+     
        assign(childName, parentName)
        {
          const root=this.getRoot();
          let parent = root.find(parentName);
          let child = root.find(childName);
          if (!parent) parent = root.addName(parentName);
-         if (!child) {child = parent.addName(childName); return;}
+         if (!child) {child = parent.addName(childName); return child;}
          
          let parentFromChild = child.find(parentName);
          if (parentFromChild) parentFromChild.parent.removeChild(parentFromChild);
          
          parent.addChild(child);
-         
+				 return child;         
        }
 
 			 appendTable(el,n) {
@@ -229,9 +257,12 @@ function OnBodyLoad()
 			     const tdMentor = trTop.insertCell();
 			     tdMentor.rowSpan = 2;
 			     tdMentor.vAlign="middle";
+			     
 			     let divPerson = tdMentor.appendChild(doc.createElement('div'));
 			     divPerson.className = 'person';
 			     divPerson.appendChild(doc.createTextNode(child.data.name));
+
+
 			     let tdRightTickTop = null;
 			     let tdMentees = null;
            if (n.parent) tdLeftTickTop.doubleHeightElement = tdMentor;
@@ -247,6 +278,8 @@ function OnBodyLoad()
 			       tdMentees = trTop.insertCell();
 			       tdMentees.rowSpan = 2;
 						 tdMentees.className='mentees';
+						 
+
 						 if (el.tdLeftTickTop)
 						   el.tdLeftTickTop.doubleHeightElement = tdMentees;
 						 if (el.tdLeftTickBottom)
@@ -283,12 +316,31 @@ function OnBodyLoad()
 						 tdRightTickBottom.doubleHeightElement = tdMentor;
 			     }
 
+			     let ad=child.data.additionalData;
+			     if (ad)
+			     {
+						 if (ad.cssText) divPerson.style.cssText = ad.cssText;
+						 if (ad.className) divPerson.className = ad.className;
+			     }
 
 
-			     if (tdMentees) {
+/*			     if (tdMentees) {
 			       tdMentees.tdLeftTickBottom = tdLeftTickBottom;
 			       tdMentees.tdleftTickTop = tdLeftTickTop;
 			       this.appendTable(tdMentees,child); 
+*/
+
+			     if (tdMentees) {
+  			     let divChildren = tdMentees.appendChild(doc.createElement('div'));
+			       divChildren.tdLeftTickBottom = tdLeftTickBottom;
+			       divChildren.tdleftTickTop = tdLeftTickTop;
+			       if (ad) {
+							 if (ad.childrenCssText) divChildren.style.cssText = ad.childrenCssText;
+							 if (ad.childrenClassName) divChildren.className = ad.childrenClassName;
+							 if (ad.childrenTitle) divChildren.appendChild(doc.createTextNode(ad.childrenTitle))     
+			       }
+			       this.appendTable(divChildren,child);
+			        
 			     }
 			   }
 			 }
@@ -306,14 +358,14 @@ function OnBodyLoad()
   <table><tr><td valign="top">
   <h2>List Leader / Member Relationships</h2>
   <h5>Separate people by tab or semicolon with leaders on the left and members to the right.<br>Each line defines new relationships.</h5>
-	<textarea id="orgData" rows="10" cols="80"></textarea><br><br>
+	<textarea id="orgData" rows="10" cols="80" style="white-space: nowrap"></textarea><br><br>
   <span>Chart Title</span> <input type="text" id="inputTitle" onblur="document.getElementById('title').innerText=this.value;"/><br><br>
 	<button id="build" onclick="buildChart();">Build</button>
 	</td>
 	<td valign="top">
 	<h2>Interpreted Membership Listing</h2>
 	<h5>After building a membership tree, this will show a lissting of the members.<br><br></h5>
-	<textarea id="membership" rows="10" cols="80"></textarea>
+	<textarea id="membership" rows="10" cols="80" style="white-space: nowrap"></textarea>
 	</td>
 	</tr>
 	</table>
