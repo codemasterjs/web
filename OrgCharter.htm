@@ -1,6 +1,42 @@
 <html>
 <head>
-  <style>
+	<script src="https://unpkg.com/xregexp/xregexp-all.js"></script>
+	<style>
+	    body{        
+        padding-top: 80px;
+        padding-right: 40px;
+    }
+    label, .nowrap {
+      white-space: nowrap;
+    }
+    .fixed-bar-right, .fixed-bar-left, .fixed-header, .fixed-footer {
+        position: fixed;        
+        background: green;
+        padding: 5px;
+        color: white;
+    }
+    .fixed-bar-right, .fixed-bar-left {
+    	height: 100%;
+    }
+    .fixed-header, .fixed-footer{
+        width: 100%;
+    }
+    .fixed-header{
+        top: 0;
+    }
+    .fixed-footer{
+        bottom: 0;
+    }
+    .fixed-bar-right {
+    	right:0;
+    }
+    .fixed-bar-left {
+    	left:0;
+    }
+    .container{
+        width: 80%;
+        margin: 0 auto; /* Center the DIV horizontally */
+    }
     @media print
 		{    
 		    .no-print, .no-print *
@@ -8,23 +44,39 @@
 		        display: none !important;
 		    }
 		}
+    @media print
+		{    
+		    .page-break-after
+		    {
+		    	page-break-after: always !important;
+		    }
+		}
 	  
-    .person {border:1px solid black;margin-top:.5em;margin-bottom:.5em;padding:.2em;}
+    .person {border:1px solid black;margin-top:.5em;margin-bottom:.5em;padding:.35em; text-align:center;}
     .boxed {border:1px solid black;padding:.2em}
     .topRightTick {border-bottom:1px solid black;width:1em;height:50%}
     .bottomRightTick {border-bottom:0px solid black;height:50%;}
     .topLeftTickTop {border-bottom:1px solid black; width:1em}
-    .topLeftTickMiddle {border-bottom:0px solid black; border-left:1px solid black; width:1em;}
-    .topLeftTickBottom {border-bottom:0px solid black; border-left: 1px solid black; width:1em;}
+    .topLeftTickMiddle {border-bottom:1px solid black; border-left:1px solid black; width:1em;}
+    .topLeftTickBottom {border-bottom:1px solid black; border-left: 1px solid black; width:1em;}
     .topLeftTick {border-bottom:1px solid black; width:1em;height:50%}
     .bottomLeftTickTop {border-top:0px solid black; border-left: 1px solid black; width:1em;}
-    .bottomLeftTickMiddle {border-top:1px solid black; border-left:1px solid black; width:1em;}
-    .bottomLeftTickBottom {border-top:1px solid black; width:1em;}
+    .bottomLeftTickMiddle {border-top:0px solid black; border-left:1px solid black; width:1em;}
+    .bottomLeftTickBottom {border-top:0px solid black; width:1em;}
     .bottomLeftTick {border-top:0px solid black; width:1em;height:50%}
+    
+		.DefaultGroup {border:1px solid black; background:beige; padding-right:15px; padding-left:5px; padding-bottom:0; padding-top:0; margin-bottom:.6em; text-align:left}
+		.InactiveGroup {border:2px solid gray; color:gray; background:LightGray}
+		.Emerging {background:Navy;color:white}
+		.Active {background:RoyalBlue;color:white}
+		.Inactive {background:PowderBlue;color:black}
+		.ActiveLeader {background:SlateBlue;color:White}
+		.InactiveLeader {background:Lavender;color:black}
 
-  </style>
-  <script languge="javascript">
 
+	</style>
+	
+	<script language="javascript">
 function OnBodyLoad()
 {
 		//Allow tab character to work in text box
@@ -38,27 +90,94 @@ function OnBodyLoad()
     }
 }
 
-     function parseMentorText(mentorText) {
+  /*   const _nestedPattern = "$Open(?<nested>(?>$Open(?<depth>)|$Close(?<-depth>)|[^$Open$Close]*)*(?(depth)(?!)))$Close";
+     function CreateNestedRegExp(openChar,closeChar) {
+     		let resultText = _nestedPattern.replace(/\$Open/g,openChar).replace(/\$Close/g,closeChar)
+     		return new RegExp(resultText);
+     }
+*/
+
+     function parsePersonText(personText) {
 				let result = {};
-				const prefixChars = mentorText.match(/^[\*\!\@\#\%\^\&]/g);
-				mentorText=mentorText.replace(/^[\*\!\@\#\%\^\&]/g,'');
-				const JSONObjectTextArr = mentorText.match(/\{.*?\}$/g)
-				mentorText=mentorText.replace(/\{.*?\}$/g,'');
+				const prefixChars = personText.match(/^[\*\!\@\#\%\^\&]/g);
+				personText=personText.replace(/^[\*\!\@\#\%\^\&]/g,'');
+				//const JSONObjectTextArr = personText.match(/\{.*?\}$/g)
+				//const JSONObjectTextArr = personText.match(CreateNestedRegExp('{','}'));
+				//JSONObjectTextArr = XRegExp.matchRecursive(personText, '{', '}', 'g');
+				let matchInfo = XRegExp.matchRecursive(personText, '{', '}', 'g', {
+				  valueNames: ['between', null, 'value', null],
+				  escapeChar: '\\'
+				});
+				let JSONObjectText="";
+				let JSONObjectTextArr=[];
+				if (matchInfo && matchInfo.length) {
+ 					let personWithoutJSONTextArr=[];
+				  for (let i=0;i<matchInfo.length;i++) {
+						switch (matchInfo[i].name) {
+						  case 'value':
+						    const v=matchInfo[i].value;
+						    if (v && v.length > 0) JSONObjectTextArr.push(v);
+						    break;
+						  case 'between':
+						    personWithoutJSONTextArr.push(matchInfo[i].value);
+						    break;
+						}
+					}
+					personText = personWithoutJSONTextArr.join('');
+					JSONObjectText = JSONObjectTextArr.join(',');
+				}
+				
+				var personGroups = [];
+				matchInfo = XRegExp.matchRecursive(personText, '\\x28', '\\x29', 'g', {
+				  valueNames: ['between', null, 'value', null]
+				  , escapeChar: '\\'
+				});
+				if (matchInfo && matchInfo.length) {
+ 					let personWithoutGroupsTextArr=[];
+				  for (let i=0;i<matchInfo.length;i++) {
+						switch (matchInfo[i].name) {
+						  case 'value':
+						    const groupText = matchInfo[i].value;
+						    var textWithoutTags = groupText.replace(/\#[a-zA-Z0-9]+/g,'').trim();
+						    var group = {};
+						    group.name = textWithoutTags;
+						    group.display = textWithoutTags.replace(/^[^\:]+\:/g,'').trim();
+						    group.tags=groupText.match(/\#[a-zA-Z0-9]+/g);
+						    personGroups.push(group);
+						    break;
+						  case 'between':
+						    personWithoutGroupsTextArr.push(matchInfo[i].value);
+						    break;
+						}
+					}
+					personText = personWithoutGroupsTextArr.join('');
+				}
+
+				//personText = personText.replace(/^\#\d+/g,'');
+
+				var personTags = personText.match(/\#[a-zA-Z0-9]+/g);
+				personText = personText.replace(/\#[a-zA-Z0-9]+/g,'');
+				personText = personText.trim();
+		    var personDisplay = personText.replace(/^[^\:]+\:/g,'').trim();
+
+				
+				//alert(matchInfo.value);
 				result.prefixChars = prefixChars;
 				result.additionalData = null;
-				if (JSONObjectTextArr && JSONObjectTextArr.length) result.additionalData = JSON.parse(JSONObjectTextArr[0]);
-				result.name = mentorText;
+				if (JSONObjectText) result.additionalData = JSON.parse("{" + JSONObjectText +"}");
+				result.name = personText;
+				result.tags = personTags;
+				result.groups = personGroups;
+				result.display = personDisplay;
+
 				return result;				
      }
      
-
-     function buildChart()
+     function populateTree(tree, text)
      {
-        //let tst = parseMentorText('Jason{"mentorCss": "background:blue", "menteesCss": "background:green", "subobj": {"f1":"hi","f2":"hi"}}');
-				//alert(tst.additionalData.mentorCss);
-				var tree = new Node('Root', null);
-				
-				for(const line of document.getElementById('orgData').value.split(/\r?\n/)) {
+				for(let line of text.split(/\r?\n/)) {
+						line = line.replace(/\#\d+/g,'');
+
 				    let lastPerson = null;
 				    let allLineItems = line.split(/[\t\|]/)
 				    let lineItems = [];
@@ -66,20 +185,65 @@ function OnBodyLoad()
 				      allLineItems[i]=allLineItems[i];
 				    for (let item of allLineItems)
 				      if (item) lineItems.push(item);
-				      
-				    if (lineItems.length == 1 && !tree.find(lineItems[0])) {
-				      let ndata = parseMentorText(lineItems[0]);
+				    
+				    //check if single person is being defined 
+				    let ndata1 = parsePersonText(lineItems[0]);  
+				    if (lineItems.length == 1 && !tree.find(ndata1.name)) {
+				      let ndata = parsePersonText(lineItems[0]);
 				    	let newNode = tree.addName(ndata.name);
+				    	newNode.data.display = ndata.display;
+				    	newNode.data.groups = ndata.groups;
+				    	newNode.data.tags = ndata.tags;
 				    	if (ndata.additionalData) newNode.data.additionalData = ndata.additionalData;
 				    	if (ndata.prefixChars) newNode.data.prefixChars = ndata.prefixChars;
-				    }
-				    else
+				    } 
+				    else //at least one assignment and possible definitions
 					    for (const person of lineItems) {
 					      if (lastPerson && person) {
-     				      let ndata = parseMentorText(person);
-     				      let ndataLast = parseMentorText(lastPerson);
+     				      let ndata = parsePersonText(person);
+     				      let ndataLast = parsePersonText(lastPerson);
+     				      let existingNode = tree.find(ndata.name);
+     				      let existingLastNode = tree.find(ndataLast.name);
+									if (existingNode) {
+										if (ndata.tags && existingNode.data.tags) {
+										  	for (tag of existingNode.data.tags)
+										  		if (!ndata.tags.includes(tag)) ndata.tags.push(tag);
+										}
+										else if (existingNode.data.tags)
+											ndata.tags=existingNode.data.tags;
+									  if (!ndata.additionalData && existingNode.data.additionalData)
+									  	ndata.additionalData = existingNode.data.additionalData;
+									  if (!ndata.groups && existingNode.data.groups)
+									  	ndata.groups = existingNode.data.groups;
+									  
+									}
+									if (existingLastNode) {
+										if (ndataLast.tags && existingLastNode.data.tags) {
+										  	for (tag of existingLastNode.data.tags)
+										  		if (!ndataLast.tags.includes(tag)) ndataLast.tags.push(tag);
+										}
+										else if (existingLastNode.data.tags)
+											ndataLast.tags=existingLastNode.data.tags;
+
+									  if (!ndataLast.additionalData && existingLastNode.data.additionalData)
+									  	ndataLast.additionalData = existingLastNode.data.additionalData;
+									  if (!ndataLast.groups && existingLastNode.data.groups)
+									  	ndataLast.groups = existingLastNode.data.groups;
+									}
 
 					      	let newNode = tree.assign(ndata.name, ndataLast.name);
+						    	newNode.data.display = ndata.display;
+						    	newNode.data.groups = ndata.groups;
+						    	newNode.data.tags = ndata.tags;
+						    	let lastNode = tree.find(ndataLast.name);
+						    	if (lastNode)
+						    	{
+						    	  lastNode.data.display = ndataLast.display;
+						    	  lastNode.data.groups = ndataLast.groups;
+						    	  lastNode.data.tags = ndataLast.tags;
+						    	  if(ndataLast.additionalData) lastNode.data.additionalData = ndataLast.additionalData;
+						    	}
+						    	
 	  				    	if (ndata.additionalData) newNode.data.additionalData = ndata.additionalData;
 						    	if (ndata.prefixChars) newNode.data.prefixChars = ndata.prefixChars;
 	  				    	if (ndataLast.additionalData) newNode.parent.data.additionalData = ndataLast.additionalData;
@@ -88,13 +252,39 @@ function OnBodyLoad()
 					      lastPerson = person;
 					    } 
 				}
+     }
+
+     function buildChart()
+     {
+        const inputText = document.getElementById('orgData').value;
+        
+        //parsePersonText(inputText);
+        //return;
+        
+        //let tst = parsePersonText('Jason{"leaderCss": "background:blue", "followersCss": "background:green", "subobj": {"f1":"hi","f2":"hi"}}');
+				//alert(tst.additionalData.leaderCss);
+				var tree = new Node('Root', null);
+				
+				populateTree(tree,inputText);
+				var leafGroupsText = tree.generateLeafGroupsText('\t');
+				var lgArr = leafGroupsText.split('\r\n');
+				lgArr.sort;
+				leafGroupsText=lgArr.join('\r\n') //.replace(/\#\d+ /g,'');
 				
 				
-     		document.getElementById('membership').value = tree.getLeafNamesText('\t');
+				var groupedTree = new Node('Root', null);
+				populateTree(groupedTree, leafGroupsText);
+				
+     		document.getElementById('membership').value = leafGroupsText;//leafGroupsText; groupedTree.getLeafNamesText('\t'); //tree.generateLeafGroupsText('\t'); //.getLeafNamesText('\t');
 
      		const container = document.getElementById('mainContent');
      		while (container.firstChild)
      		  container.removeChild(container.firstChild);
+     		renderTree(container,groupedTree);
+     }
+
+     function renderTree(container,tree) {
+     		
      		tree.appendTable(container,tree);
      		let td=null;
      		let pEls=[];
@@ -107,11 +297,112 @@ function OnBodyLoad()
      		  if (td.doubleHeightElement)
      		    td.style.height = td.doubleHeightElement.offsetHeight / 2 + 'px';
      		}
+     		
+     		let mc = document.getElementById('mainContent')
+     		let leaderTables = mc.getElementsByTagName("table");
+     		let heightSum = 0;
+     		for (table of leaderTables) if (table.parentElement == mc) {
+					if (heightSum && table.offsetHeight > 100) table.style.cssText = 'margin-top:1em';
+     			heightSum += table.offsetHeight;
+     			let nextHeight = 0;
+     			if (table.nextElementSibling) nextHeight = table.nextElementSibling.offsetHeight;
+     			if (heightSum + nextHeight > 850)
+     			{
+     				heightSum = 0;
+     			  let newElement = document.createElement('div');
+     			  if(table.nextElementSibling)
+     			  	table.parentNode.insertBefore(newElement,table.nextElementSibling);
+     			  newElement.className = 'page-break-after';
+     			  //newElement.appendChild(document.createElement('br'));
+     			}
+     		}
+     		
+     		/*
+     		let mainTable = document.getElementById('mainContent').firstElementChild;
+
+     		for (row of mainTable.rows) if (row.rowIndex % 2 == 1) {
+     			let prevRow = row.previousElementSibling;
+     			let nextRowTop = row.nextElementSibling;
+     			let nextRowBottom = null;
+     			if (nextRowTop) nextRowTop.nextElementSibling;
+     			
+     			phSum += prevRow.offsetHeight + row.offsetHeight;
+     			let nextHeight = 0;
+     			if (nextRowBottom) nextHeight = nextRowTop.offsetHeight + nextRowBottom.offsetHeight; 
+     			
+     			if (phSum + nextHeight > 800) {
+     			  phSum = 0;
+     			  let newElement = document.createElement('div');
+     			  row.parentNode.insertBefore(newElement,row.nextElementSibling);
+     			  newElement.className += 'page-break-after';
+     			  newElement.appendChild(document.createElement('br'));
+     			}
+     		}
+     		*/
      }
      
+
+
      class NodeData {
        constructor(name) {
          this.name = name;
+       }
+       getFullText(groupName) {
+       
+       	let result = this.name;
+       	if (groupName) {
+       		result = groupName.replace(/\:/,'_') + '_' + this.name.split(':')[0] + ':' + this.display;
+       	}
+       	if (this.groups && this.groups.length)
+       	{
+       	  let groupTextArr=[];
+       	  for (let i=0;i<this.groups.length;i++) {
+       	    let group = this.groups[i];
+       	    let groupText = group.name;
+       	    let tags= group.tags;
+       	    if (tags && tags.length) {
+       	      groupText += " " + tags.join(' ');
+       	    }
+       	  	groupTextArr.push("(" + groupText + ")");
+       	  }
+       	  result += groupTextArr.join('');
+       	}
+       	if (this.tags && this.tags.length) {
+       		result += " " + this.tags.join(' ');
+       	}
+       	if (this.additionalData) result+= " " + JSON.stringify(this.additionalData);
+        return result;
+       }
+       generateGroupArr(parentName, groupDic)
+       {
+        let result=[];
+        if (this.groups && this.groups.length) {
+	        for (let i=0;i<this.groups.length;i++) {
+	        	let group=this.groups[i];
+	       	  if (groupDic && parentName) {
+	       	  	let baseGroup=groupDic[parentName + '~' + group.name];
+	       	  	if (baseGroup) group=baseGroup;
+	       	  }
+	       	  let groupText = group.name;
+	       	  if (group.display == groupText)
+	       	    groupText = group.name + ":" + group.display;
+	     	    let tags= group.tags;
+	     	    if (tags && tags.length) {
+	     	      groupText += " " + tags.join(' ');
+	     	    }
+	     	    let fullGroupName = parentName + "~" + groupText;
+	       	  //result.push(fullGroupName + ' #group|' + this.getFullText(group.name));
+	       	  result.push(groupText + ' #group|' + this.getFullText());
+	       	}
+       	}
+       	else if (parentName)
+					//result.push(parentName + "~default: #defaultGroup|" + this.getFullText());
+					result.push("default: #defaultGroup|" + this.getFullText());
+				else
+				  //result.push(parentName + this.getFullText());
+				  result.push(this.getFullText());
+      	return result;
+       	
        }
      }
      
@@ -169,6 +460,76 @@ function OnBodyLoad()
          return result;
        }
        
+       generateGroupsText(pathSeparator,groupsDic,uniqueItems) {
+         var ancestor = this;
+         var result = '';
+         while (ancestor.parent) {
+           let leafCount = this.getLeaves(ancestor).length;
+           if (result) {
+            let groupArr = ancestor.data.generateGroupArr(ancestor.parent.pathName('~'),groupsDic);
+            let resultLines = result.split('\r\n');
+            let crossArr = [];
+            for (let i=0;i<groupArr.length;i++) {
+              groupArr[i] = "#" + ("000" + (999 - leafCount)).substr(-3,3) + " " + groupArr[i].replace(/\|/g,pathSeparator);
+              for (let j=0;j<resultLines.length;j++)
+              	crossArr.push(groupArr[i] + pathSeparator + resultLines[j]);
+              }
+            result = crossArr.join('\r\n');
+           }
+           else {
+            let groupArr = ancestor.data.generateGroupArr(ancestor.parent.pathName('~'),groupsDic);
+            for (let i=0;i<groupArr.length;i++)
+              groupArr[i] = "#" + ("000" + (999 - leafCount)).substr(-3,3) + " " + groupArr[i].replace(/\|/g,pathSeparator);
+           	result = groupArr.join('\r\n');
+           }
+           
+           ancestor = ancestor.parent;
+         }
+         
+         if (!uniqueItems) uniqueItems = {};
+         let resultArr = result.split('\r\n');
+         for (let i=0;i<resultArr.length;i++) {
+         		let items = resultArr[i].split(pathSeparator);
+		        let pathText = '';
+         		for (let j=0;j<items.length;j++) {
+         			let itemText=items[j];
+         			let countTagArr = itemText.match(/\#\d+ /g);
+         			let countTag='';
+         			if (countTagArr && countTagArr.length) countTag=countTagArr[0];
+         			itemText = itemText.replace(/\#\d+ /g,'');
+         			let item = parsePersonText(itemText);
+         			if (item.name == item.display) item.name = item.name + ':' + item.display;
+         			if (pathText) pathText = pathText.replace(/\:/g,'_') + '~';
+         			pathText += item.name;
+         			let uniqueItem = uniqueItems[pathText];
+         			if (!uniqueItem) {
+         				uniqueItem = new NodeData(pathText); 
+         				uniqueItems[pathText] = uniqueItem
+         		  }
+         		  else 
+         		  	{var tst=0;tst++;}
+         			if (!uniqueItem.count) uniqueItem.count = 1; else uniqueItem.count++;
+
+							if (!uniqueItem.tags || uniqueItem.tags.length==0)
+								uniqueItem.tags = item.tags;
+							else
+								for (let k=0;k<item.tags.length;k++)
+									if (!uniqueItem.tags.includes(item.tags[k])) uniqueItem.tags.push(item.tags[k]);
+
+							if (!uniqueItem.groups || uniqueItem.groups.length==0)
+								uniqueItem.groups = item.groups;
+         			uniqueItem.display = item.display;
+         			
+         			itemText = countTag + uniqueItem.getFullText();
+         			items[j]=itemText;
+         		}
+         		resultArr[i]=items.join(pathSeparator);
+         }
+         result = resultArr.join('\r\n');
+         
+         return result;
+       }
+       
        getLeaves(n) {
          if (n.children.length==0) return [n];
          const result=[];
@@ -178,6 +539,7 @@ function OnBodyLoad()
 	         
          return result;
        }
+
        
        getLeafNamesText(pathSeparator) {
          let resultArr = [];
@@ -186,6 +548,84 @@ function OnBodyLoad()
          resultArr.sort();
          return resultArr.join('\r\n');  
        }
+
+			 generateLeafGroupsText(pathSeparator,groupsDic) {
+			   let uniqueItems = {};
+         let resultArr = [];
+         for (const leaf of this.getLeaves(this)) {
+           let groupsText = leaf.generateGroupsText(pathSeparator,groupsDic,uniqueItems);
+           let groupsTextArr = groupsText.split('\r\n');
+           for (const line of groupsTextArr)
+           	 resultArr.push(line);
+         }
+         
+         for (const key in uniqueItems) {
+         		uniqueItems[key].count=0;
+         }
+         
+				 //count children and complete merge of tags
+         for (let i=0;i<resultArr.length;i++) {
+         		let items = resultArr[i].split(pathSeparator);
+         		let counters=[];
+		        //let pathText = '';
+         		for (let j=0;j<items.length;j++) {
+         			let itemText=items[j];
+         			let countTagArr = itemText.match(/\#\d+ /g);
+         			let countTag='';
+         			if (countTagArr && countTagArr.length) countTag=countTagArr[0];
+         			itemText = itemText.replace(/\#\d+ /g,'');
+         			let item = parsePersonText(itemText);
+         			if (item.name == item.display) item.name = item.name + ':' + item.display;
+         			//if (pathText) pathText = pathText.replace(/\:/g,'_') + '~';
+         			let pathText = item.name;
+         			let uniqueItem = uniqueItems[pathText];
+         			for (const counter of counters)
+         				counter.count += 1;
+         			counters.push(uniqueItem);
+         			if (!uniqueItem) {
+         				uniqueItem = new NodeData(pathText);
+         				uniqueItems[pathText] = uniqueItem
+         			}
+         			if (!uniqueItem.count) uniqueItem.count = 1 //; else uniqueItem.count++;
+
+							if (!uniqueItem.tags || uniqueItem.tags.length==0)
+								uniqueItem.tags = item.tags;
+							else
+								for (let k=0;k<item.tags.length;k++)
+									if (!uniqueItem.tags.includes(item.tags[k])) uniqueItem.tags.push(item.tags[k]);
+
+							if (!uniqueItem.groups || uniqueItem.groups.length==0)
+								uniqueItem.groups = item.groups;
+         			uniqueItem.display = item.display;
+         			
+         			//itemText = "#" + ("000" + (999 - uniqueItem.count)).substr(-3,3) + " " + uniqueItem.getFullText();
+         			itemText = uniqueItem.getFullText();
+         			items[j]=itemText;
+         		}
+         		resultArr[i]=items.join(pathSeparator);
+         }
+
+					//Add count tags for sorting
+         for (let i=0;i<resultArr.length;i++) {
+         		let items = resultArr[i].split(pathSeparator);
+         		for (let j=0;j<items.length;j++) {
+         			let itemText=items[j];
+         			itemText = itemText.replace(/\#\d+ /g,''); //strip out count tags
+         			let item = parsePersonText(itemText);
+         			if (item.name == item.display) item.name = item.name + ':' + item.display;
+         			let pathText = item.name;
+         			let uniqueItem = uniqueItems[pathText];
+         			
+         			itemText = "#" + ("000" + (999 - uniqueItem.count)).substr(-3,3) + " " + uniqueItem.getFullText();
+         			items[j]=itemText;
+         		}
+         		resultArr[i]=items.join(pathSeparator);
+         }
+
+
+         resultArr.sort();
+         return resultArr.join('\r\n');  
+			 }
        
        rFind(n,name) {
          if (n.data.name == name) return n;
@@ -218,7 +658,7 @@ function OnBodyLoad()
 
 			 appendTable(el,n) {
 			   const doc=document;
-			   const tbl = doc.createElement('table');
+			   let tbl = doc.createElement('table');
 			   tbl.style.height="1px";
 			   tbl.cellSpacing = '0';
 			   tbl.cellPadding = '0';
@@ -228,8 +668,17 @@ function OnBodyLoad()
 				   let lastChild = null;
 				   if (n.children.length>0) {firstChild = n.children[0]; lastChild=n.children[n.children.length - 1];}
 			   
+			   let cidx =-1;
 			   for (const child of n.children)
 			   {
+			     cidx++;
+					 if (child.parent && !child.parent.parent && cidx > 0) {
+							tbl = doc.createElement('table');
+							tbl.style.height="1px";
+							tbl.cellSpacing = '0';
+							tbl.cellPadding = '0';
+							el.appendChild(tbl);
+					 }
 
 			     const trTop = tbl.insertRow();
 			     let tdLeftTickTop = null;
@@ -254,18 +703,23 @@ function OnBodyLoad()
 		       }
 
 
-			     const tdMentor = trTop.insertCell();
-			     tdMentor.rowSpan = 2;
-			     tdMentor.vAlign="middle";
-			     
-			     let divPerson = tdMentor.appendChild(doc.createElement('div'));
-			     divPerson.className = 'person';
-			     divPerson.appendChild(doc.createTextNode(child.data.name));
+			     const tdLeader = trTop.insertCell();
+			     tdLeader.rowSpan = 2;
+			     tdLeader.vAlign="middle";
 
+					 
+			     
+			     let divPerson = tdLeader.appendChild(doc.createElement('div'));
+			     divPerson.className = 'person';
+			     divPerson.appendChild(doc.createTextNode(child.data.display));
+					 //divPerson.style.cssText='border:1px solid red';
+					 if (child.data.tags && (child.data.tags.includes('#group') || child.data.tags.includes('#defaultGroup'))) {
+					 		divPerson.style.cssText = 'display:none';
+					 }
 
 			     let tdRightTickTop = null;
-			     let tdMentees = null;
-           if (n.parent) tdLeftTickTop.doubleHeightElement = tdMentor;
+			     let tdFollowers = null;
+           if (n.parent) tdLeftTickTop.doubleHeightElement = tdLeader;
            
 			     if (child.children.length>0) 
 			     {
@@ -273,17 +727,17 @@ function OnBodyLoad()
 	           tdRightTickTop.className = 'topRightTick';
 						 tdRightTickTop.appendChild(doc.createElement('br'));
 						 tdRightTickTop.innerHTML = '<p></p>';
-						 tdRightTickTop.doubleHeightElement = tdMentor;
+						 tdRightTickTop.doubleHeightElement = tdLeader;
 
-			       tdMentees = trTop.insertCell();
-			       tdMentees.rowSpan = 2;
-						 tdMentees.className='mentees';
+			       tdFollowers = trTop.insertCell();
+			       tdFollowers.rowSpan = 2;
+						 tdFollowers.className='followers';
 						 
 
 						 if (el.tdLeftTickTop)
-						   el.tdLeftTickTop.doubleHeightElement = tdMentees;
+						   el.tdLeftTickTop.doubleHeightElement = tdFollowers;
 						 if (el.tdLeftTickBottom)
-						   el.tdLeftTickBottom.doubleHeightElement = tdMentees;
+						   el.tdLeftTickBottom.doubleHeightElement = tdFollowers;
 						   
 			     }
 			     const trBottom = tbl.insertRow();
@@ -293,7 +747,7 @@ function OnBodyLoad()
 			       tdLeftTickBottom.className = 'bottomLeftTick';
 			       tdLeftTickBottom.appendChild(doc.createElement('br'));
 						 tdLeftTickBottom.innerHTML = '<p></p>';
-						 if (n.parent) tdLeftTickBottom.doubleHeightElement = tdMentor;
+						 if (n.parent) tdLeftTickBottom.doubleHeightElement = tdLeader;
 
 			       if (firstChild != lastChild) {
 			         if (child == firstChild)
@@ -313,9 +767,50 @@ function OnBodyLoad()
 			       tdRightTickBottom.className = 'bottomRightTick';
 			       tdRightTickBottom.appendChild(doc.createElement('br'));
 						 tdRightTickBottom.innerHTML = '<p></p>';
-						 tdRightTickBottom.doubleHeightElement = tdMentor;
+						 tdRightTickBottom.doubleHeightElement = tdLeader;
 			     }
 
+					 if (child.data.tags && child.data.tags.includes('#group')) {
+					    if (!child.data.additionalData) child.data.additionalData = {};
+					 		child.data.additionalData.childrenTitle = child.data.display;
+					 }
+					 if (child.data.tags && (child.data.tags.includes('#group') && !child.data.tags.includes('#defaultGroup'))) {
+					 		if (!child.data.additionalData) child.data.additionalData = {};
+					 		if (child.data.tags.includes('#Inactive')) {
+					 			child.data.additionalData.childrenClassName = 'DefaultGroup InactiveGroup';
+					 		}
+					 		else {
+					 			child.data.additionalData.childrenClassName = 'DefaultGroup';
+					 		}
+					 }
+					 else if (child.data.tags) {
+				 		 if (!child.data.additionalData) child.data.additionalData = {};
+					 	 if (child.data.tags.includes('#Emerging'))	child.data.additionalData.className = 'person Emerging';
+					 	 else if (child.data.tags.includes('#Inactive'))	child.data.additionalData.className = 'person Inactive';
+					 	 else if (child.data.tags.includes('#InactiveLeader'))	child.data.additionalData.className = 'person InactiveLeader';
+					 	 else if (child.data.tags.includes('#ActiveLeader'))	child.data.additionalData.className = 'person ActiveLeader';
+					 	 else child.data.additionalData.className = 'person Active';
+					 }
+					 else {
+				 		 if (!child.data.additionalData) child.data.additionalData = {};
+					 	 child.data.additionalData.className = 'person Active';
+					 }
+					 
+					 if (child.data.tags) {
+					 		if (!child.data.additionalData) child.data.additionalData = {};
+					 		for (const tag of child.data.tags) {
+					 			if (tag.startsWith('#Color')) {
+					 				let colorOnColorArr = tag.substring(6).split('On');
+					 				if (colorOnColorArr.length == 2) {
+					 					let background = colorOnColorArr[1];
+					 					let foreground = colorOnColorArr[0];
+					 					child.data.additionalData.cssText = "background: " + background + " !important; color: " + foreground + " !important;";
+					 				}
+					 			}
+					 		
+					 		} 
+					 }
+					 
 			     let ad=child.data.additionalData;
 			     if (ad)
 			     {
@@ -323,23 +818,21 @@ function OnBodyLoad()
 						 if (ad.className) divPerson.className = ad.className;
 			     }
 
-
-/*			     if (tdMentees) {
-			       tdMentees.tdLeftTickBottom = tdLeftTickBottom;
-			       tdMentees.tdleftTickTop = tdLeftTickTop;
-			       this.appendTable(tdMentees,child); 
-*/
-
-			     if (tdMentees) {
-  			     let divChildren = tdMentees.appendChild(doc.createElement('div'));
+			     if (tdFollowers) {
+  			     let divChildren = tdFollowers.appendChild(doc.createElement('div'));
 			       divChildren.tdLeftTickBottom = tdLeftTickBottom;
 			       divChildren.tdleftTickTop = tdLeftTickTop;
 			       if (ad) {
 							 if (ad.childrenCssText) divChildren.style.cssText = ad.childrenCssText;
 							 if (ad.childrenClassName) divChildren.className = ad.childrenClassName;
-							 if (ad.childrenTitle) divChildren.appendChild(doc.createTextNode(ad.childrenTitle))     
+							 if (ad.childrenTitle) divChildren.appendChild(doc.createTextNode(ad.childrenTitle)) 
 			       }
+
 			       this.appendTable(divChildren,child);
+
+			       if (ad) {
+							 if (ad.childrenTitle) divChildren.appendChild(doc.createElement('br')); 
+			       }
 			        
 			     }
 			   }
@@ -347,39 +840,49 @@ function OnBodyLoad()
 
 
      }
-     
-     
-     
-  </script>
+	
+	</script>
 </head>
 <body onload="OnBodyLoad()">
-
-<div id="mainInput" class="no-print">
-  <table><tr><td valign="top">
-  <h2>List Leader / Member Relationships</h2>
-  <h5>Separate people by tab or semicolon with leaders on the left and members to the right.<br>Each line defines new relationships.</h5>
-	<textarea id="orgData" rows="10" cols="80" style="white-space: nowrap"></textarea><br><br>
-  <span>Chart Title</span> <input type="text" id="inputTitle" onblur="document.getElementById('title').innerText=this.value;"/><br><br>
-	<button id="build" onclick="buildChart();">Build</button>
-	</td>
-	<td valign="top">
-	<h2>Interpreted Membership Listing</h2>
-	<h5>After building a membership tree, this will show a lissting of the members.<br><br></h5>
-	<textarea id="membership" rows="10" cols="80" style="white-space: nowrap"></textarea>
-	</td>
-	</tr>
-	</table>
+<div class="fixed-header no-print">
+	  <span class="nowrap"><span>Chart Title&nbsp;&nbsp;&nbsp;</span><input type="text" id="inputTitle" onblur="document.getElementById('title').innerText=this.value;"/></span><br>
+	  <!-- <span class="nowrap"><span>Person/Group&nbsp;&nbsp;&nbsp;</span><span><select id="objectSelector" style="width:30em"></select>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></span>
+	  <span class="nowrap"><span>Name&nbsp;&nbsp;&nbsp;</span><span><input type="text" id=objectName">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></span>
+	  <span class="nowrap">
+		  <span>Status&nbsp;&nbsp;&nbsp;</span>
+		  <span><label><input name="objectStatus" type="radio" id=objectStatusInactive" value="Inactive"> Inactive</label></span>
+		  <span><label><input name="objectStatus" type="radio" id=objectStatusEmerging" value="Emerging"> Emerging</label></span>
+		  <span><label><input name="objectStatus" type="radio" id=objectStatusActive" value="Active"> Active</label></span>
+	  </span>
+	  <span>
+    <span>Status&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+	  <button id="apply" onclick="applyChanges();">Apply</button>
+	  </span> -->
+	  <br>
 </div>
-
-<table>
-<tr><td align="center" style="text-align:center">
-<h1 id="title"></h1>
-</td></tr>
-<tr><td align="center">
-<div id="mainContent">
+<!--
+<div class="fixed-bar-right">
+    Properties
+</div>-->
+<div class="container">
+	<div id="mainInput" class="no-print">
+	  <table><tr><td valign="top">
+	  <h2>List Leader / Member Relationships</h2>
+	  <h5>Separate people by tab or semicolon with leaders on the left and members to the right.<br>Each line defines new relationships.</h5>
+		<textarea id="orgData" rows="10" cols="80" style="white-space: nowrap"></textarea><br><br>
+		<button id="build" onclick="buildChart();">Build</button>
+		</td>
+		<td valign="top" style="display:none">
+		<h2>Interpreted Membership Listing</h2>
+		<h5>After building a membership tree, this will show a lissting of the members.<br><br></h5>
+		<textarea id="membership" rows="10" cols="80" style="white-space: nowrap"></textarea>
+		</td>
+		</tr>
+		</table>
+	</div>
+	<h1 id="title"></h1>	
+	<div id="mainContent">
+	</div>
 </div>
-</td>
-</tr>
-</table>
 </body>
 </html>
