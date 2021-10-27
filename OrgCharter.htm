@@ -620,8 +620,10 @@ function OnBodyLoad()
          			if (item.name == item.display) item.name = item.name + ':' + item.display;
          			let pathText = item.name;
          			let uniqueItem = uniqueItems[pathText];
-         			
-         			itemText = "#" + ("000" + (999 - uniqueItem.count)).substr(-3,3) + " " + uniqueItem.getFullText();
+         			let statusIndNum = '1';
+         			if (item.tags && (item.tags.includes('#Inactive') || item.tags.includes('#InactiveLeader') )) statusIndNum = '3'; 
+         			if (item.tags && (item.tags.includes('#Emerging')  )) statusIndNum = '0'; 
+         			itemText = "#" + statusIndNum + ("000" + (999 - uniqueItem.count)).substr(-3,3) + " " + uniqueItem.getFullText();
          			items[j]=itemText;
          		}
          		resultArr[i]=items.join(pathSeparator);
