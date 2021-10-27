@@ -6,6 +6,10 @@
         padding-top: 80px;
         padding-right: 40px;
     }
+    @media print
+    {
+    	body {padding:0 !important;}
+    }
     label, .nowrap {
       white-space: nowrap;
     }
@@ -34,7 +38,7 @@
     	left:0;
     }
     .container{
-        width: 80%;
+        width: 100%;
         margin: 0 auto; /* Center the DIV horizontally */
     }
     @media print
@@ -175,6 +179,7 @@ function OnBodyLoad()
      
      function populateTree(tree, text)
      {
+				text = text.trim();     
 				for(let line of text.split(/\r?\n/)) {
 						line = line.replace(/\#\d+/g,'');
 
